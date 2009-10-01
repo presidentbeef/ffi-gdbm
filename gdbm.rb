@@ -229,7 +229,7 @@ class GDBM
 		GDBM_FFI.exists? @file, key
 	end
 
-	alias :key :has_key?
+	alias :key? :has_key?
 
 	def has_value?(value)
 
