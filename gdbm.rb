@@ -266,7 +266,12 @@ class GDBM
 	alias :value? :has_value?
 
 	def index(value)
-
+		GDBM_FFI.each_pair(@file) do |k,v|
+			if value == v
+				return k
+			end
+		end
+		nil
 	end
 
 	def invert
@@ -344,9 +349,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	g["goodbye"] = "cruel world"
-	g.each_value do |k|
-		p k
-	end
+	p g.index "world"
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
