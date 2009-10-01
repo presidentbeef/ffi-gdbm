@@ -71,8 +71,13 @@ module GDBM_FFI
 		if val_datum[:dptr].null?
 			nil
 		else
-			val_datum[:dptr]
+			val_datum[:dptr].read_string
 		end
+	end
+
+	def self.delete(file, key)
+		key_datum = Datum.new key
+		gdbm_delete file, key_datum
 	end
 
 	def self.exists?(file, key)
@@ -179,7 +184,9 @@ class GDBM
 	end
 
 	def delete(key)
-
+		value = self.fetch key
+		GDBM_FFI.delete @file, key
+		value
 	end
 
 	def delete_if
@@ -316,8 +323,9 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	puts "Error number: #{GDBM_FFI.gdbm_strerror(GDBM_FFI.ERR_NO)}"
-	puts "Has key 'hello'? #{g.has_key? "hello"}"
 	puts "Value: #{g["hello"].inspect}"
+	puts "Deleted 'hello' which had value #{g.delete "hello"}"
+	puts "Has key 'hello'? #{g.has_key? "hello"}"
 	puts "Has key 'goodbye'? #{g.has_key? "goodbye"}"
 	puts "Default value: #{g.fetch("goodbye"){|k| k + "yo" }}"
 	puts "Error number: #{GDBM_FFI.gdbm_strerror(GDBM_FFI.ERR_NO)}"
