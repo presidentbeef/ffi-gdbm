@@ -305,7 +305,7 @@ class GDBM
 	end
 
 	def reorganize
-
+		GDBM_FFI.reorganize @file
 		self
 	end
 
@@ -367,7 +367,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	g["goodbye"] = "cruel world"
-	p g.length
+	p g.reorganize
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
