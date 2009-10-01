@@ -213,7 +213,16 @@ class GDBM
 	end
 
 	def fetch(key, default = nil)
-
+		result = GDBM_FFI.fetch @file, key
+		if result.nil?
+			if default
+				default
+			elsif block_given?
+				yield key
+			end
+		else
+			result
+		end
 	end
 
 	def has_key?(key)
@@ -307,10 +316,13 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	puts "Error number: #{GDBM_FFI.gdbm_strerror(GDBM_FFI.ERR_NO)}"
-	puts "Has key? #{g.has_key? "hello"}"
+	puts "Has key 'hello'? #{g.has_key? "hello"}"
 	puts "Value: #{g["hello"].inspect}"
+	puts "Has key 'goodbye'? #{g.has_key? "goodbye"}"
+	puts "Default value: #{g.fetch("goodbye"){|k| k + "yo" }}"
 	puts "Error number: #{GDBM_FFI.gdbm_strerror(GDBM_FFI.ERR_NO)}"
 	g.close
 	puts "closed"
 	puts g.closed?
+	File.delete "hello" if File.exists? "hello"
 end
