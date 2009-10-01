@@ -330,7 +330,13 @@ class GDBM
 	end
 
 	def values
+		values = []
 
+		GDBM_FFI.each_value(@file) do |v|
+			values << v
+		end
+
+		values
 	end
 
 	def values_at(*keys)
@@ -349,7 +355,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	g["goodbye"] = "cruel world"
-	p g.index "world"
+	p g.values
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
