@@ -34,8 +34,8 @@ module GDBM_FFI
 	attach_function :gdbm_store, [ :pointer, Datum.by_value, Datum.by_value, :int ], :int
 	attach_function :gdbm_fetch, [ :pointer, Datum.by_value ], Datum.by_value
 	attach_function :gdbm_delete, [ :pointer, Datum.by_value ], :int
-	attach_function :gdbm_firstkey, [ :pointer ], Datum.by_value
-	attach_function :gdbm_nextkey, [ :pointer, Datum.by_value ], Datum.by_value
+	attach_function :first_key, :gdbm_firstkey, [ :pointer ], Datum.by_value
+	attach_function :next_key, :gdbm_nextkey, [ :pointer, Datum.by_value ], Datum.by_value
 	attach_function :reorganize, :gdbm_reorganize, [ :pointer ], :int
 	attach_function :sync, :gdbm_sync, [ :pointer ], :void
 	attach_function :gdbm_exists, [ :pointer, Datum.by_value ], :int
@@ -86,12 +86,31 @@ module GDBM_FFI
 		gdbm_exists(file, key_datum) != 0
 	end
 
-	def self.first_key(file)
-
+	def self.each_pair(file)
+		current = self.first_key file
+		until current[:dptr].null?
+			value = gdbm_fetch file, current
+			yield current[:dptr].read_string, value[:dptr].read_string
+			current = self.next_key file, current
+		end
 	end
 
-	def self.next_key(file, current_key)
+	def self.each_key(file)
+		current = self.first_key file
+		until current[:dptr].null?
+			value = gdbm_fetch file, current
+			yield current[:dptr].read_string
+			current = self.next_key file, current
+		end
+	end
 
+	def self.each_value(file)
+		current = self.first_key file
+		until current[:dptr].null?
+			value = gdbm_fetch file, current
+			yield value[:dptr].read_string
+			current = self.next_key file, current
+		end
 	end
 end
 
@@ -196,18 +215,20 @@ class GDBM
 
 	alias :reject! :delete_if
 
-	def each_key
-
+	def each_key(&block)
+		GDBM_FFI.each_key @file, &block
 		self
 	end
 
-	def each_pair
-
+	def each_pair(&block)
+		GDBM_FFI.each_pair @file, &block
 		self
 	end
 
-	def each_value
+	alias :each :each_pair
 
+	def each_value(&block)
+		GDBM_FFI.each_value @file, &block
 		self
 	end
 
@@ -322,15 +343,11 @@ if $0 == __FILE__
 	File.delete "hello" if File.exists? "hello"
 	g = GDBM.new "hello"
 	g["hello"] = "world"
-	puts "Error number: #{GDBM_FFI.gdbm_strerror(GDBM_FFI.ERR_NO)}"
-	puts "Value: #{g["hello"].inspect}"
-	puts "Deleted 'hello' which had value #{g.delete "hello"}"
-	puts "Has key 'hello'? #{g.has_key? "hello"}"
-	puts "Has key 'goodbye'? #{g.has_key? "goodbye"}"
-	puts "Default value: #{g.fetch("goodbye"){|k| k + "yo" }}"
-	puts "Error number: #{GDBM_FFI.gdbm_strerror(GDBM_FFI.ERR_NO)}"
+	g["goodbye"] = "cruel world"
+	g.each_value do |k|
+		p k
+	end
 	g.close
 	puts "closed"
-	puts g.closed?
 	File.delete "hello" if File.exists? "hello"
 end
