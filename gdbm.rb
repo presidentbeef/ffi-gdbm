@@ -279,11 +279,23 @@ class GDBM
 	end
 
 	def keys
+		keys = []
 
+		GDBM_FFI.each_value(@file) do |k|
+			keys << k
+		end
+
+		keys
 	end
 
 	def length
+		len = 0
 
+		GDBM_FFI.each_key(@file) do |k|
+			len = len + 1
+		end
+
+		len
 	end
 
 	alias :size :length
@@ -355,7 +367,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	g["goodbye"] = "cruel world"
-	p g.values
+	p g.length
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
