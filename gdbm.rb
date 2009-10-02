@@ -233,7 +233,8 @@ class GDBM
 	end
 
 	def empty?
-
+		key = GDBM_FFI.first_key @file
+		key[:dptr].null?
 	end
 
 	def fastmode=(boolean)
@@ -367,7 +368,9 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	g["goodbye"] = "cruel world"
-	p g.reorganize
+	g.delete 'hello'
+	g.delete 'goodbye'
+	p g.empty?
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
