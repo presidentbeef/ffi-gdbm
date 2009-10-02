@@ -340,6 +340,7 @@ class GDBM
 
 	def sync
 		GDBM_FFI.sync @file
+		self
 	end
 
 	def sycnmode=(boolean)
