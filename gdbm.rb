@@ -324,7 +324,13 @@ class GDBM
 	end
 
 	def select
-
+		result = []
+		GDBM_FFI.each_value(@file) do |v|
+			if yield v
+				result << v
+			end
+		end
+		result
 	end
 
 	def shift
@@ -393,7 +399,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	g["goodbye"] = "cruel world"
-	p g.to_hash
+	p g.select {|v| v[0,1] == "f" }
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
