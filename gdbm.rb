@@ -339,7 +339,15 @@ class GDBM
 	alias :size :length
 
 	def reject
+		result = {}
 
+		GDBM_FFI.each_pair(@file) do |k,v|
+			if not yield k, v
+				result[k] = v
+			end
+		end
+
+		result
 	end
 
 	def reorganize
@@ -427,7 +435,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hell\000"] = "wor\000ld"
 	g["goodbye"] = "cruel world"
-	p g.invert
+	p g.reject {|k,v| v.length > 7 }
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
