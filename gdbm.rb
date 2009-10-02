@@ -46,7 +46,7 @@ module GDBM_FFI
 	attach_function :sync, :gdbm_sync, [ :pointer ], :void
 	attach_function :gdbm_exists, [ :pointer, Datum.by_value ], :int
 	attach_function :set_opt, :gdbm_setopt, [ :pointer, :int, :pointer, :int ], :int
-	attach_function :gdbm_strerror, [ :int ], :string
+	attach_function :error_string, :gdbm_strerror, [ :int ], :string
 
 	READER = 0
 	WRITER = 1
@@ -66,7 +66,8 @@ module GDBM_FFI
 		key_datum = Datum.new key
 		val_datum = Datum.new value
 
-		gdbm_store file, key_datum, val_datum, GDBM_FFI::REPLACE
+		result = gdbm_store file, key_datum, val_datum, GDBM_FFI::REPLACE
+		raise GDBMError, error_string(ERR_NO) if result != 0
 	end
 
 	def self.fetch(file, key)
@@ -91,8 +92,10 @@ module GDBM_FFI
 	end
 
 	def self.delete(file, key)
+		return nil if not self.exists? file, key
 		key_datum = Datum.new key
-		gdbm_delete file, key_datum
+		result = gdbm_delete file, key_datum
+		raise GDBMError, error_string(ERR_NO) if result != 0
 	end
 
 	def self.exists?(file, key)
@@ -132,7 +135,8 @@ module GDBM_FFI
 		until (key = self.gdbm_firstkey(file))[:dptr].null?
 			until key[:dptr].null?
 				next_key = self.gdbm_nextkey(file, key)
-				self.gdbm_delete file, key
+				result = self.gdbm_delete file, key
+				raise GDBMError, error_string(ERR_NO) if result != 0
 				key = next_key
 			end
 		end
@@ -193,7 +197,7 @@ class GDBM
 			begin
 				yield obj
 			ensure
-				obj.close
+				obj.close unless obj.closed?
 			end
 		else
 			obj
@@ -201,12 +205,12 @@ class GDBM
 	end
 
 	def [](key)
-		GDBM_FFI.fetch @file, key
+		GDBM_FFI.fetch file, key
 	end
 
 	def []=(key, value)
 		modifiable?
-		GDBM_FFI.store @file, key, value
+		GDBM_FFI.store file, key, value
 	end
 
 	alias :store :[]=
@@ -217,12 +221,12 @@ class GDBM
 
 	def clear
 		modifiable?
-		GDBM_FFI.clear @file
+		GDBM_FFI.clear file
 		self
 	end
 
 	def close
-		GDBM_FFI.close @file if @file
+		GDBM_FFI.close file if @file
 		@file = nil
 	end
 
@@ -233,21 +237,21 @@ class GDBM
 	def delete(key)
 		modifiable?
 		value = self.fetch key
-		GDBM_FFI.delete @file, key
+		GDBM_FFI.delete file, key
 		value
 	end
 
 	def delete_if
 		modifiable?
 		rejects = []
-		GDBM_FFI.each_pair(@file) do |k,v|
+		GDBM_FFI.each_pair(file) do |k,v|
 			if yield k, v
 				rejects << k
 			end
 		end
 
 		rejects.each do |k|
-			GDBM_FFI.delete @file, k
+			GDBM_FFI.delete file, k
 		end
 
 		self
@@ -256,24 +260,24 @@ class GDBM
 	alias :reject! :delete_if
 
 	def each_key(&block)
-		GDBM_FFI.each_key @file, &block
+		GDBM_FFI.each_key file, &block
 		self
 	end
 
 	def each_pair(&block)
-		GDBM_FFI.each_pair @file, &block
+		GDBM_FFI.each_pair file, &block
 		self
 	end
 
 	alias :each :each_pair
 
 	def each_value(&block)
-		GDBM_FFI.each_value @file, &block
+		GDBM_FFI.each_value file, &block
 		self
 	end
 
 	def empty?
-		key = GDBM_FFI.first_key @file
+		key = GDBM_FFI.first_key file
 		key.nil?
 	end
 
@@ -282,7 +286,7 @@ class GDBM
 	end
 
 	def fetch(key, default = nil)
-		result = GDBM_FFI.fetch @file, key
+		result = GDBM_FFI.fetch file, key
 		if result.nil?
 			if default
 				default
@@ -295,7 +299,7 @@ class GDBM
 	end
 
 	def has_key?(key)
-		GDBM_FFI.exists? @file, key
+		GDBM_FFI.exists? file, key
 	end
 
 	alias :key? :has_key?
@@ -303,7 +307,7 @@ class GDBM
 	alias :include? :has_key?
 
 	def has_value?(value)
-		GDBM_FFI.each_value(@file) do |v|
+		GDBM_FFI.each_value(file) do |v|
 			if v == value
 				return true
 			end
@@ -314,7 +318,7 @@ class GDBM
 	alias :value? :has_value?
 
 	def index(value)
-		GDBM_FFI.each_pair(@file) do |k,v|
+		GDBM_FFI.each_pair(file) do |k,v|
 			if value == v
 				return k
 			end
@@ -325,7 +329,7 @@ class GDBM
 	def invert
 		result = {}
 
-		GDBM_FFI.each_pair(@file) do |k,v|
+		GDBM_FFI.each_pair(file) do |k,v|
 			result[v] = k
 		end
 
@@ -335,7 +339,7 @@ class GDBM
 	def keys
 		keys = []
 
-		GDBM_FFI.each_value(@file) do |k|
+		GDBM_FFI.each_value(file) do |k|
 			keys << k
 		end
 
@@ -345,7 +349,7 @@ class GDBM
 	def length
 		len = 0
 
-		GDBM_FFI.each_key(@file) do |k|
+		GDBM_FFI.each_key(file) do |k|
 			len = len + 1
 		end
 
@@ -357,7 +361,7 @@ class GDBM
 	def reject
 		result = {}
 
-		GDBM_FFI.each_pair(@file) do |k,v|
+		GDBM_FFI.each_pair(file) do |k,v|
 			if not yield k, v
 				result[k] = v
 			end
@@ -368,7 +372,7 @@ class GDBM
 
 	def reorganize
 		modifiable?
-		GDBM_FFI.reorganize @file
+		GDBM_FFI.reorganize file
 		self
 	end
 
@@ -380,7 +384,7 @@ class GDBM
 
 	def select
 		result = []
-		GDBM_FFI.each_value(@file) do |v|
+		GDBM_FFI.each_value(file) do |v|
 			if yield v
 				result << v
 			end
@@ -390,10 +394,10 @@ class GDBM
 
 	def shift
 		modifiable?
-		key = GDBM_FFI.first_key @file
+		key = GDBM_FFI.first_key file
 		if key
-			value = GDBM_FFI.fetch @file, key
-			GDBM_FFI.delete @file, key
+			value = GDBM_FFI.fetch file, key
+			GDBM_FFI.delete file, key
 			[key, value]
 		else
 			nil
@@ -402,7 +406,7 @@ class GDBM
 
 	def sync
 		modifiable?
-		GDBM_FFI.sync @file
+		GDBM_FFI.sync file
 		self
 	end
 
@@ -412,7 +416,7 @@ class GDBM
 
 	def to_a
 		result = []
-		GDBM_FFI.each_pair(@file) do |k,v|
+		GDBM_FFI.each_pair(file) do |k,v|
 			result << [k, v]
 		end
 		result
@@ -420,7 +424,7 @@ class GDBM
 
 	def to_hash
 		result = {}
-		GDBM_FFI.each_pair(@file) do |k,v|
+		GDBM_FFI.each_pair(file) do |k,v|
 			result[k] = v
 		end
 		result
@@ -428,7 +432,7 @@ class GDBM
 
 	def update(other)
 		other.each_pair do |k,v|
-			GDBM_FFI.store @file, k, v
+			GDBM_FFI.store file, k, v
 		end
 		self
 	end
@@ -436,7 +440,7 @@ class GDBM
 	def values
 		values = []
 
-		GDBM_FFI.each_value(@file) do |v|
+		GDBM_FFI.each_value(file) do |v|
 			values << v
 		end
 
@@ -459,17 +463,25 @@ class GDBM
 		#raise SecurityError, "Insecure operation at level #$SAFE" if $SAFE >= 4 #Not currently supported in JRuby
 		raise RuntimeError, "Can't modify frozen #{self}" if self.frozen?
 	end
+
+	def file
+		if @file
+			@file
+		else
+			raise RuntimeError, "closed GDBM file"
+		end
+	end
 end
 
 if $0 == __FILE__
 	File.delete "hello" if File.exists? "hello"
-	g = GDBM.new "hello"
-	g["hell\000"] = "wor\000ld"
-	g["goodbye"] = "cruel world"
-	g.freeze
-	g.replace({"goodbye" => "everybody", "hello" => "somebody"})
-	p g.to_hash
-	g.close
+	GDBM.open "hello", 0666, GDBM::NEWDB do |g|
+		g["hell\000"] = "wor\000ld"
+		g["goodbye"] = "cruel world"
+		g.close
+		g.replace({"goodbye" => "everybody", "hello" => "somebody"})
+		p g.to_hash
+	end
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
 end
