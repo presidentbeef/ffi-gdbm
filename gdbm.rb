@@ -348,11 +348,19 @@ class GDBM
 	end
 
 	def to_a
-
+		result = []
+		GDBM_FFI.each_pair(@file) do |k,v|
+			result << [k, v]
+		end
+		result
 	end
 
 	def to_hash
-
+		result = {}
+		GDBM_FFI.each_pair(@file) do |k,v|
+			result[k] = v
+		end
+		result
 	end
 
 	def update(other)
@@ -385,9 +393,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	g["goodbye"] = "cruel world"
-	p g.shift
-	p g.shift
-	p g.shift
+	p g.to_hash
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
