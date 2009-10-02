@@ -307,7 +307,13 @@ class GDBM
 	end
 
 	def invert
+		result = {}
 
+		GDBM_FFI.each_pair(@file) do |k,v|
+			result[v] = k
+		end
+
+		result
 	end
 
 	def keys
@@ -421,9 +427,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hell\000"] = "wor\000ld"
 	g["goodbye"] = "cruel world"
-	g.delete_if {|k,v| k == "goodbye" }
-	p g.has_key? "goodbye"
-	p g.has_key? "hell\000"
+	p g.invert
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
