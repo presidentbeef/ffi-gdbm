@@ -34,8 +34,8 @@ module GDBM_FFI
 	attach_function :gdbm_store, [ :pointer, Datum.by_value, Datum.by_value, :int ], :int
 	attach_function :gdbm_fetch, [ :pointer, Datum.by_value ], Datum.by_value
 	attach_function :gdbm_delete, [ :pointer, Datum.by_value ], :int
-	attach_function :first_key, :gdbm_firstkey, [ :pointer ], Datum.by_value
-	attach_function :next_key, :gdbm_nextkey, [ :pointer, Datum.by_value ], Datum.by_value
+	attach_function :gdbm_firstkey, [ :pointer ], Datum.by_value
+	attach_function :gdbm_nextkey, [ :pointer, Datum.by_value ], Datum.by_value
 	attach_function :reorganize, :gdbm_reorganize, [ :pointer ], :int
 	attach_function :sync, :gdbm_sync, [ :pointer ], :void
 	attach_function :gdbm_exists, [ :pointer, Datum.by_value ], :int
@@ -75,6 +75,15 @@ module GDBM_FFI
 		end
 	end
 
+	def self.first_key(file)
+		key_datum = GDBM_FFI.gdbm_firstkey file
+		if key_datum[:dptr].null?
+			nil
+		else
+			key_datum[:dptr].read_string
+		end
+	end
+
 	def self.delete(file, key)
 		key_datum = Datum.new key
 		gdbm_delete file, key_datum
@@ -87,29 +96,29 @@ module GDBM_FFI
 	end
 
 	def self.each_pair(file)
-		current = self.first_key file
+		current = self.gdbm_firstkey file
 		until current[:dptr].null?
 			value = gdbm_fetch file, current
 			yield current[:dptr].read_string, value[:dptr].read_string
-			current = self.next_key file, current
+			current = self.gdbm_nextkey file, current
 		end
 	end
 
 	def self.each_key(file)
-		current = self.first_key file
+		current = self.gdbm_firstkey file
 		until current[:dptr].null?
 			value = gdbm_fetch file, current
 			yield current[:dptr].read_string
-			current = self.next_key file, current
+			current = self.gdbm_nextkey file, current
 		end
 	end
 
 	def self.each_value(file)
-		current = self.first_key file
+		current = self.gdbm_firstkey file
 		until current[:dptr].null?
 			value = gdbm_fetch file, current
 			yield value[:dptr].read_string
-			current = self.next_key file, current
+			current = self.gdbm_nextkey file, current
 		end
 	end
 end
@@ -319,7 +328,13 @@ class GDBM
 	end
 
 	def shift
-
+		key = GDBM_FFI.first_key @file
+		if key
+			value = GDBM_FFI.fetch @file, key
+			[key, value]
+		else
+			nil
+		end
 	end
 
 	def sync
@@ -368,9 +383,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	g["goodbye"] = "cruel world"
-	g.delete 'hello'
-	g.delete 'goodbye'
-	p g.empty?
+	p g.shift
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
