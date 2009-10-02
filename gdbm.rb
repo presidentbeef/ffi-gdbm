@@ -205,6 +205,7 @@ class GDBM
 	end
 
 	def []=(key, value)
+		modifiable?
 		GDBM_FFI.store @file, key, value
 	end
 
@@ -215,6 +216,7 @@ class GDBM
 	end
 
 	def clear
+		modifiable?
 		GDBM_FFI.clear @file
 		self
 	end
@@ -229,12 +231,14 @@ class GDBM
 	end
 
 	def delete(key)
+		modifiable?
 		value = self.fetch key
 		GDBM_FFI.delete @file, key
 		value
 	end
 
 	def delete_if
+		modifiable?
 		rejects = []
 		GDBM_FFI.each_pair(@file) do |k,v|
 			if yield k, v
@@ -296,6 +300,7 @@ class GDBM
 
 	alias :key? :has_key?
 	alias :member? :has_key?
+	alias :include? :has_key?
 
 	def has_value?(value)
 		GDBM_FFI.each_value(@file) do |v|
@@ -362,6 +367,7 @@ class GDBM
 	end
 
 	def reorganize
+		modifiable?
 		GDBM_FFI.reorganize @file
 		self
 	end
@@ -383,6 +389,7 @@ class GDBM
 	end
 
 	def shift
+		modifiable?
 		key = GDBM_FFI.first_key @file
 		if key
 			value = GDBM_FFI.fetch @file, key
@@ -394,6 +401,7 @@ class GDBM
 	end
 
 	def sync
+		modifiable?
 		GDBM_FFI.sync @file
 		self
 	end
@@ -444,6 +452,13 @@ class GDBM
 
 		results
 	end
+
+	private
+
+	def modifiable?
+		#raise SecurityError, "Insecure operation at level #$SAFE" if $SAFE >= 4 #Not currently supported in JRuby
+		raise RuntimeError, "Can't modify frozen #{self}" if self.frozen?
+	end
 end
 
 if $0 == __FILE__
@@ -451,6 +466,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hell\000"] = "wor\000ld"
 	g["goodbye"] = "cruel world"
+	g.freeze
 	g.replace({"goodbye" => "everybody", "hello" => "somebody"})
 	p g.to_hash
 	g.close
