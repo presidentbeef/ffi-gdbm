@@ -127,6 +127,16 @@ module GDBM_FFI
 			current = self.gdbm_nextkey file, current
 		end
 	end
+
+	def self.clear(file)
+		until (key = self.gdbm_firstkey(file))[:dptr].null?
+			until key[:dptr].null?
+				next_key = self.gdbm_nextkey(file, key)
+				self.gdbm_delete file, key
+				key = next_key
+			end
+		end
+	end
 end
 
 class GDBMError < StandardError; end
@@ -205,7 +215,8 @@ class GDBM
 	end
 
 	def clear
-
+		GDBM_FFI.clear @file
+		self
 	end
 
 	def close
@@ -259,7 +270,7 @@ class GDBM
 
 	def empty?
 		key = GDBM_FFI.first_key @file
-		key[:dptr].null?
+		key.nil?
 	end
 
 	def fastmode=(boolean)
@@ -435,7 +446,8 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hell\000"] = "wor\000ld"
 	g["goodbye"] = "cruel world"
-	p g.reject {|k,v| v.length > 7 }
+	g.clear
+	p g.empty?
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
