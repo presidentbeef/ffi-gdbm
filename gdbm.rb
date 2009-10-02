@@ -331,6 +331,7 @@ class GDBM
 		key = GDBM_FFI.first_key @file
 		if key
 			value = GDBM_FFI.fetch @file, key
+			GDBM_FFI.delete @file, key
 			[key, value]
 		else
 			nil
@@ -383,6 +384,8 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	g["goodbye"] = "cruel world"
+	p g.shift
+	p g.shift
 	p g.shift
 	g.close
 	puts "closed"
