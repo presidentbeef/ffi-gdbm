@@ -367,7 +367,9 @@ class GDBM
 	end
 
 	def replace(other)
-
+		self.clear
+		self.update other
+		self
 	end
 
 	def select
@@ -417,7 +419,10 @@ class GDBM
 	end
 
 	def update(other)
-
+		other.each_pair do |k,v|
+			GDBM_FFI.store @file, k, v
+		end
+		self
 	end
 
 	def values
@@ -446,8 +451,8 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hell\000"] = "wor\000ld"
 	g["goodbye"] = "cruel world"
-	g.clear
-	p g.empty?
+	g.replace({"goodbye" => "everybody", "hello" => "somebody"})
+	p g.to_hash
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
