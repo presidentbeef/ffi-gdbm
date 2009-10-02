@@ -25,6 +25,12 @@ module GDBM_FFI
 		def dptr
 			@dptr.get_string(0)
 		end
+
+		def size
+			#When FFI stores the string, it appends a NULL, thus the stored size
+			#is one character longer than the string.
+			self[:dsize] - 1
+		end
 	end
 
 	callback :fatal_func, [:string], :void
@@ -71,7 +77,7 @@ module GDBM_FFI
 		if val_datum[:dptr].null?
 			nil
 		else
-			val_datum[:dptr].read_string
+			val_datum[:dptr].read_string(val_datum.size)
 		end
 	end
 
@@ -80,7 +86,7 @@ module GDBM_FFI
 		if key_datum[:dptr].null?
 			nil
 		else
-			key_datum[:dptr].read_string
+			key_datum[:dptr].read_string(key_datum.size)
 		end
 	end
 
@@ -99,7 +105,7 @@ module GDBM_FFI
 		current = self.gdbm_firstkey file
 		until current[:dptr].null?
 			value = gdbm_fetch file, current
-			yield current[:dptr].read_string, value[:dptr].read_string
+			yield current[:dptr].read_string(current.size), value[:dptr].read_string(value.size)
 			current = self.gdbm_nextkey file, current
 		end
 	end
@@ -108,7 +114,7 @@ module GDBM_FFI
 		current = self.gdbm_firstkey file
 		until current[:dptr].null?
 			value = gdbm_fetch file, current
-			yield current[:dptr].read_string
+			yield current[:dptr].read_string(current.size)
 			current = self.gdbm_nextkey file, current
 		end
 	end
@@ -117,7 +123,7 @@ module GDBM_FFI
 		current = self.gdbm_firstkey file
 		until current[:dptr].null?
 			value = gdbm_fetch file, current
-			yield value[:dptr].read_string
+			yield value[:dptr].read_string(value.size)
 			current = self.gdbm_nextkey file, current
 		end
 	end
@@ -402,9 +408,9 @@ end
 if $0 == __FILE__
 	File.delete "hello" if File.exists? "hello"
 	g = GDBM.new "hello"
-	g["hello"] = "world"
+	g["hel\000lo"] = "wor\000ld"
 	g["goodbye"] = "cruel world"
-	p g.has_value? "world"
+	p g.fetch "hel\000lo"
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
