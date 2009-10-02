@@ -224,6 +224,16 @@ class GDBM
 	end
 
 	def delete_if
+		rejects = []
+		GDBM_FFI.each_pair(@file) do |k,v|
+			if yield k, v
+				rejects << k
+			end
+		end
+
+		rejects.each do |k|
+			GDBM_FFI.delete @file, k
+		end
 
 		self
 	end
@@ -274,6 +284,7 @@ class GDBM
 	end
 
 	alias :key? :has_key?
+	alias :member? :has_key?
 
 	def has_value?(value)
 		GDBM_FFI.each_value(@file) do |v|
@@ -408,9 +419,11 @@ end
 if $0 == __FILE__
 	File.delete "hello" if File.exists? "hello"
 	g = GDBM.new "hello"
-	g["hel\000lo"] = "wor\000ld"
+	g["hell\000"] = "wor\000ld"
 	g["goodbye"] = "cruel world"
-	p g.fetch "hel\000lo"
+	g.delete_if {|k,v| k == "goodbye" }
+	p g.has_key? "goodbye"
+	p g.has_key? "hell\000"
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
