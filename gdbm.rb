@@ -270,7 +270,12 @@ class GDBM
 	alias :key? :has_key?
 
 	def has_value?(value)
-
+		GDBM_FFI.each_value(@file) do |v|
+			if v == value
+				return true
+			end
+		end
+		false
 	end
 
 	alias :value? :has_value?
@@ -399,7 +404,7 @@ if $0 == __FILE__
 	g = GDBM.new "hello"
 	g["hello"] = "world"
 	g["goodbye"] = "cruel world"
-	p g.select {|v| v[0,1] == "f" }
+	p g.has_value? "world"
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
