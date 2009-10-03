@@ -181,12 +181,13 @@ class GDBM
 				@file = GDBM_FFI.open filename, BLOCKSIZE, WRCREAT | flags, mode, GDBM_FFI::FATAL
 			end
 
-			@file = GDBM_FFI.open filename, BLOCKSIZE, WRITER | flags, 0, GDBM_FFI::FATAL if @file.nil?
+			@file = GDBM_FFI.open filename, BLOCKSIZE, WRITER | flags, 0, GDBM_FFI::FATAL if @file.nil? or @file.null?
 
-			@file = GDBM_FFI.open filename, BLOCKSIZE, READER | flags, 0, GDBM_FFI::FATAL if @file.nil?
+			@file = GDBM_FFI.open filename, BLOCKSIZE, READER | flags, 0, GDBM_FFI::FATAL if @file.nil? or @file.null?
 		end
 
-		if @file.nil?
+		if @file.nil? or @file.null?
+			return nil if mode == -1
 			#if gdbm_errno == GDBM_FILE_OPEN_ERROR || gdbm_errno == GDBM_CANT_BE_READER || gdbm_errno == GDBM_CANT_BE_WRITER
 			#Need to know what the Ruby version of this would be
 			#rb_sys_fail(RSTRING_PTR(file));
@@ -232,12 +233,12 @@ class GDBM
 	end
 
 	def close
-		GDBM_FFI.close file if @file
+		GDBM_FFI.close @file if @file
 		@file = nil
 	end
 
 	def closed?
-		@file.nil?
+		@file.nil? or @file.null?
 	end
 
 	def delete(key)
@@ -471,23 +472,24 @@ class GDBM
 	end
 
 	def file
-		if @file
+		if @file.nil? and not @file.null?
 			@file
 		else
-			raise RuntimeError, "closed GDBM file"
+			raise(RuntimeError, "closed GDBM file")
 		end
 	end
 end
 
 if $0 == __FILE__
 	File.delete "hello" if File.exists? "hello"
-	GDBM.open("hello") {}
-	GDBM.open "hello", nil, GDBM::READER do |g|
+	GDBM.open "hello", 0400 do |g|
 		g["hell\000"] = "wor\000ld"
 		g["goodbye"] = "cruel world"
 		g.replace({"goodbye" => "everybody", "hello" => "somebody"})
 		p g.to_hash
 	end
+	g = GDBM.open "hello", nil
+	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
 end
