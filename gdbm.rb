@@ -60,14 +60,14 @@ module GDBM_FFI
 	VERSION = ""
 	FATAL = Proc.new  { |msg| raise RuntimeError, msg }
 
-	attach_variable :ERR_NO, :gdbm_errno, :int
+	attach_variable :error_number, :gdbm_errno, :int
 
 	def self.store(file, key, value)
 		key_datum = Datum.new key
 		val_datum = Datum.new value
 
 		result = gdbm_store file, key_datum, val_datum, GDBM_FFI::REPLACE
-		raise GDBMError, error_string(ERR_NO) if result != 0
+		raise GDBMError, last_error if result != 0
 	end
 
 	def self.fetch(file, key)
@@ -95,7 +95,7 @@ module GDBM_FFI
 		return nil if not self.exists? file, key
 		key_datum = Datum.new key
 		result = gdbm_delete file, key_datum
-		raise GDBMError, error_string(ERR_NO) if result != 0
+		raise GDBMError, last_error if result != 0
 	end
 
 	def self.exists?(file, key)
@@ -136,10 +136,14 @@ module GDBM_FFI
 			until key[:dptr].null?
 				next_key = self.gdbm_nextkey(file, key)
 				result = self.gdbm_delete file, key
-				raise GDBMError, error_string(ERR_NO) if result != 0
+				raise GDBMError, last_error if result != 0
 				key = next_key
 			end
 		end
+	end
+
+	def self.last_error
+		error_string(error_number)
 	end
 end
 
@@ -173,11 +177,13 @@ class GDBM
 
 			@file = GDBM_FFI.open filename, BLOCKSIZE, flags, mode, GDBM_FFI::FATAL
 		else
-			@file = GDBM_FFI.open filename, BLOCKSIZE, WRCREAT | flags, mode, GDBM_FFI::FATAL
+			if mode > 0
+				@file = GDBM_FFI.open filename, BLOCKSIZE, WRCREAT | flags, mode, GDBM_FFI::FATAL
+			end
 
-			@file = GDBM_FFI.open filename, BLOCKSIZE, WRITER | flags, mode, GDBM_FFI::FATAL if @file.nil?
+			@file = GDBM_FFI.open filename, BLOCKSIZE, WRITER | flags, 0, GDBM_FFI::FATAL if @file.nil?
 
-			@file = GDBM_FFI.open filename, BLOCKSIZE, READER | flags, mode, GDBM_FFI::FATAL if @file.nil?
+			@file = GDBM_FFI.open filename, BLOCKSIZE, READER | flags, 0, GDBM_FFI::FATAL if @file.nil?
 		end
 
 		if @file.nil?
@@ -475,10 +481,10 @@ end
 
 if $0 == __FILE__
 	File.delete "hello" if File.exists? "hello"
-	GDBM.open "hello", 0666, GDBM::NEWDB do |g|
+	GDBM.open("hello") {}
+	GDBM.open "hello", nil, GDBM::READER do |g|
 		g["hell\000"] = "wor\000ld"
 		g["goodbye"] = "cruel world"
-		g.close
 		g.replace({"goodbye" => "everybody", "hello" => "somebody"})
 		p g.to_hash
 	end
