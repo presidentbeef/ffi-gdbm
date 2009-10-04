@@ -192,7 +192,7 @@ class GDBM
 			#Need to know what the Ruby version of this would be
 			#rb_sys_fail(RSTRING_PTR(file));
 			#else
-			raise GDBMError, GDBM_FFI.error_string(GDBM_FFI::gdbm_errno);
+			raise GDBMError, GDBM_FFI.last_error;
 			#end
 		end
 	end
