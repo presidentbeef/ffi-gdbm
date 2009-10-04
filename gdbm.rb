@@ -472,7 +472,7 @@ class GDBM
 	end
 
 	def file
-		if @file.nil? and not @file.null?
+		unless @file.nil? or @file.null?
 			@file
 		else
 			raise(RuntimeError, "closed GDBM file")
@@ -488,7 +488,7 @@ if $0 == __FILE__
 		g.replace({"goodbye" => "everybody", "hello" => "somebody"})
 		p g.to_hash
 	end
-	g = GDBM.open "hello", nil
+	g = GDBM.open "hello"
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
