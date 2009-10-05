@@ -182,7 +182,6 @@ class GDBM
 			end
 
 			@file = GDBM_FFI.open filename, BLOCKSIZE, WRITER | flags, 0, GDBM_FFI::FATAL if @file.nil? or @file.null?
-
 			@file = GDBM_FFI.open filename, BLOCKSIZE, READER | flags, 0, GDBM_FFI::FATAL if @file.nil? or @file.null?
 		end
 
@@ -202,10 +201,11 @@ class GDBM
 
 		if block_given?
 			begin
-				yield obj
+				result = yield obj
 			ensure
 				obj.close unless obj.closed?
 			end
+			result
 		else
 			obj
 		end
