@@ -235,8 +235,8 @@ class GDBM
 	end
 
 	def close
-		GDBM_FFI.close @file if @file
-		@file = nil
+		GDBM_FFI.close @file unless closed?
+		@file = nil unless frozen?
 	end
 
 	def closed?
