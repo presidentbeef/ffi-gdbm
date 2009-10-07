@@ -209,7 +209,7 @@ class GDBM
 			return if mode == -1 #C code returns Qnil, but we can't
 			if GDBM_FFI.error_number == GDBM_FFI::FILE_OPEN_ERROR and not File.exist? filename
 				raise Errno::ENOENT
-			elsif GDBM_FFI.error_number == GDBM_FFI::CANT_BE_READER || GDM_FFI.error_number == GDBM_FII::CANT_BE_WRITER
+			elsif GDBM_FFI.error_number == GDBM_FFI::CANT_BE_READER || GDM_FFI.error_number == GDBM_FFI::CANT_BE_WRITER
 				raise Errno::EACCES
 			else
 				raise GDBMError, GDBM_FFI.last_error;
