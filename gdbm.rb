@@ -116,7 +116,6 @@ module GDBM_FFI
 	def self.each_key(file)
 		current = self.gdbm_firstkey file
 		until current[:dptr].null?
-			value = gdbm_fetch file, current
 			yield current[:dptr].read_string(current.size)
 			current = self.gdbm_nextkey file, current
 		end
