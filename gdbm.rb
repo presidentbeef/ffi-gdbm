@@ -56,11 +56,10 @@ module GDBM_FFI
 	SYNC = 0x20
 	NOLOCK = 0x40
 	REPLACE = 1
-	#attach_variable :VERSION, :gdbm_version, :string  #why doesn't this work??
-	VERSION = ""
 	FATAL = Proc.new  { |msg| raise RuntimeError, msg }
 
 	attach_variable :error_number, :gdbm_errno, :int
+	attach_variable :VERSION, :gdbm_version, :string
 
 	def self.store(file, key, value)
 		key_datum = Datum.new key
@@ -163,7 +162,7 @@ class GDBM
 	FAST = GDBM_FFI::FAST
 	SYNC = GDBM_FFI::SYNC
 	NOLOCK = GDBM_FFI::NOLOCK
-	VERSION = GDBM_FFI::VERSION 
+	VERSION = GDBM_FFI.VERSION 
 
 	def initialize(filename, mode = 0666, flags = nil)
 
@@ -457,7 +456,7 @@ class GDBM
 		self
 	end
 
-	def sycnmode=(boolean)
+	def syncmode=(boolean)
 
 	end
 
@@ -528,6 +527,7 @@ end
 
 if $0 == __FILE__
 	File.delete "hello" if File.exists? "hello"
+	p GDBM::VERSION
 	GDBM.open "hello", 0400 do |g|
 		g["hell\000"] = "wor\000ld"
 		g["goodbye"] = "cruel world"
