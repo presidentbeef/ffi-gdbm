@@ -6,6 +6,14 @@ begin
 rescue LoadError
 end
 
+#This is needed because JRuby does not have it implemented yet,
+#but it's in MRI 1.9 and in the tests below (remove_entry_secure)
+class File::Stat
+	def world_writable?
+		(self.mode & 0002) != 0
+	end
+end
+
 if defined? GDBM
   require 'tmpdir'
   require 'fileutils'
