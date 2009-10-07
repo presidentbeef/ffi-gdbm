@@ -56,6 +56,9 @@ module GDBM_FFI
 	SYNC = 0x20
 	NOLOCK = 0x40
 	REPLACE = 1
+	CACHE_SIZE = 1
+	FAST_MODE = 2
+	SYNC_MODE = 3
 	FATAL = Proc.new  { |msg| raise RuntimeError, msg }
 
 	attach_variable :error_number, :gdbm_errno, :int
@@ -144,14 +147,19 @@ module GDBM_FFI
 		error_string(error_number)
 	end
 
-	def self.set_fast_mode(file, boolean)
+	def self.set_cache_size(file, size)
+		opt = MemoryPointer.new size
+		self.set_opt file, CACHE_SIZE, opt, opt.size
+	end
+
+	def self.set_sync_mode(file, boolean)
 		if boolean
 			opt = MemoryPointer.new 1
 		else
 			opt = MemoryPointer.new 0
 		end
 
-		self.set_opt file, FAST, opt, opt.size
+		self.set_opt file, SYNC_MODE, opt, opt.size
 	end
 end
 
@@ -233,7 +241,7 @@ class GDBM
 	alias :store :[]=
 
 	def cachesize=(size)
-
+		GDBM_FFI.set_cache_size file, size
 	end
 
 	def clear
@@ -313,7 +321,7 @@ class GDBM
 	end
 
 	def fastmode=(boolean)
-		GDBM_FFI.set_fast_mode file, boolean
+		GDBM_FFI.set_sync_mode file, !boolean
 	end
 
 	def fetch(key, default = nil)
@@ -467,7 +475,7 @@ class GDBM
 	end
 
 	def syncmode=(boolean)
-		GDBM_FFI.set_fast_mode file, !boolean
+		GDBM_FFI.set_sync_mode file, boolean
 	end
 
 	def to_a
@@ -537,7 +545,6 @@ end
 
 if $0 == __FILE__
 	File.delete "hello" if File.exists? "hello"
-	p GDBM::VERSION
 	GDBM.open "hello", 0400 do |g|
 		g["hell\000"] = "wor\000ld"
 		g["goodbye"] = "cruel world"
@@ -549,6 +556,7 @@ if $0 == __FILE__
 		p g.length
 	end
 	g = GDBM.open "hello"
+	g.cachesize = 100
 	g.close
 	puts "closed"
 	File.delete "hello" if File.exists? "hello"
