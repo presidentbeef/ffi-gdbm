@@ -359,12 +359,11 @@ class GDBM
 	alias :value? :has_value?
 
 	def index(value)
-		GDBM_FFI.each_pair(file) do |k,v|
-			if value == v
-				return k
-			end
+		if RUBY_VERSION >= "1.9"
+			warn "GDBM#index is deprecated; use GDBM#key"
 		end
-		nil
+
+		self.key(value)
 	end
 
 	def invert
@@ -375,6 +374,15 @@ class GDBM
 		end
 
 		result
+	end
+
+	def key(value)
+		GDBM_FFI.each_pair(file) do |k,v|
+			if v == value
+				return k
+			end
+		end
+		nil
 	end
 
 	def keys
