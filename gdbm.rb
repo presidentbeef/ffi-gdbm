@@ -402,13 +402,32 @@ class GDBM
 		self
 	end
 
-	def select
+	def select *args
 		result = []
-		GDBM_FFI.each_value(file) do |v|
-			if yield v
-				result << v
+		#This method behaves completely contrary to what the docs state:
+		#http://ruby-doc.org/stdlib/libdoc/gdbm/rdoc/classes/GDBM.html#M000318
+		#Instead, it yields a pair and returns [[k1, v1], [k2, v2], ...]
+		#But this is how it is in 1.8.7 and 1.9.1, so...
+
+		if block_given?
+			if args.length > 0
+				raise ArgumentError, "wrong number of arguments(#{args.length} for 0)"
 			end
+
+			GDBM_FFI.each_pair(file) do |k, v|
+				if yield k, v
+					result << [k, v]
+				end
+			end
+		#This is for 1.8.7 compatibility
+		elsif RUBY_VERSION <= "1.8.7"
+			warn "GDBM#select(index..) is deprecated; use GDBM#values_at"
+
+			result = values_at *args
+		else
+			result = []
 		end
+
 		result
 	end
 
