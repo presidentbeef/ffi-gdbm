@@ -7,13 +7,15 @@ module GDBM_FFI
 	class Datum < FFI::Struct
 		layout :dptr, :pointer,	:dsize, :int
 
+		#Note that MRI does not store the null byte, so neither does this version,
+		#even though FFI automatically appends one to the string.
 		def initialize(*args)
 			if args.length == 0 or (args.length == 1 and args[0].is_a? FFI::MemoryPointer)
 				super
 			elsif args.length == 1 and args[0].is_a? String
 				super()
 				self.dptr = args[0]
-				self[:dsize] = args[0].length + 1
+				self[:dsize] = args[0].length
 			end
 		end
 
@@ -27,9 +29,7 @@ module GDBM_FFI
 		end
 
 		def size
-			#When FFI stores the string, it appends a NULL, thus the stored size
-			#is one character longer than the string.
-			self[:dsize] - 1
+			self[:dsize]
 		end
 	end
 
@@ -561,21 +561,3 @@ class GDBM
 	end
 end
 
-if $0 == __FILE__
-	File.delete "hello" if File.exists? "hello"
-	GDBM.open "hello", 0400 do |g|
-		g["hell\000"] = "wor\000ld"
-		g["goodbye"] = "cruel world"
-		n = 0
-		g.delete_if do |k,v|
-			break if n == 1
-			n = 1
-		end	
-		p g.length
-	end
-	g = GDBM.open "hello"
-	g.cachesize = 100
-	g.close
-	puts "closed"
-	File.delete "hello" if File.exists? "hello"
-end
