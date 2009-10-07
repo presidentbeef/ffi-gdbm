@@ -143,6 +143,16 @@ module GDBM_FFI
 	def self.last_error
 		error_string(error_number)
 	end
+
+	def self.set_fast_mode(file, boolean)
+		if boolean
+			opt = MemoryPointer.new 1
+		else
+			opt = MemoryPointer.new 0
+		end
+
+		self.set_opt file, FAST, opt, opt.size
+	end
 end
 
 class GDBMError < StandardError; end
@@ -303,7 +313,7 @@ class GDBM
 	end
 
 	def fastmode=(boolean)
-
+		GDBM_FFI.set_fast_mode file, boolean
 	end
 
 	def fetch(key, default = nil)
@@ -457,7 +467,7 @@ class GDBM
 	end
 
 	def syncmode=(boolean)
-
+		GDBM_FFI.set_fast_mode file, !boolean
 	end
 
 	def to_a
