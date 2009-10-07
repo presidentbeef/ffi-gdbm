@@ -268,6 +268,8 @@ class GDBM
 					rejects << k
 				end
 			end
+		#unsure about this, but it handles breaking during
+		#the iteration
 		ensure
 			rejects.each do |k|
 				GDBM_FFI.delete file, k
