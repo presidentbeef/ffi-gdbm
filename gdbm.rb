@@ -170,7 +170,7 @@ class GDBM
 
 		mode = -1 if mode.nil?
 		flags = 0 if flags.nil?
-
+		@file = nil
 
 		if flags & RUBY_GDBM_RW_BIT != 0 #Check if flags are appropriate
 			flags &= ~RUBY_GDBM_RW_BIT #Remove check to make flag match GDBM constants
@@ -186,7 +186,7 @@ class GDBM
 		end
 
 		if @file.nil? or @file.null?
-			return nil if mode == -1
+			return if mode == -1 #C code returns Qnil, but we can't
 			#if gdbm_errno == GDBM_FILE_OPEN_ERROR || gdbm_errno == GDBM_CANT_BE_READER || gdbm_errno == GDBM_CANT_BE_WRITER
 			#Need to know what the Ruby version of this would be
 			#rb_sys_fail(RSTRING_PTR(file));
@@ -206,6 +206,8 @@ class GDBM
 				obj.close unless obj.closed?
 			end
 			result
+		elsif obj.nil?
+			nil
 		else
 			obj
 		end
@@ -364,6 +366,10 @@ class GDBM
 	end
 
 	alias :size :length
+
+	def nil?
+		@file.nil? or @file.null?
+	end
 
 	def reject
 		result = {}
