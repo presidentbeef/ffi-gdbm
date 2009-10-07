@@ -246,6 +246,12 @@ class GDBM
 	def delete(key)
 		modifiable?
 		value = self[key]
+		#This is bizarre and not mentioned in the docs,
+		#but this is what the tests expect and what the MRI
+		#version does.
+		if value.nil? and block_given?
+			value = yield key
+		end
 		GDBM_FFI.delete file, key
 		value
 	end
