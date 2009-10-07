@@ -234,8 +234,12 @@ class GDBM
 	end
 
 	def close
-		GDBM_FFI.close @file unless closed?
-		@file = nil unless frozen?
+		if closed?
+			raise RuntimeError, "closed GDBM file"
+		else
+			GDBM_FFI.close @file
+			@file = nil unless frozen?
+		end
 	end
 
 	def closed?
