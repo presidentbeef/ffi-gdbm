@@ -427,7 +427,7 @@ class GDBM
 		self
 	end
 
-	def select *args
+	def select(*args)
 		result = []
 		#This method behaves completely contrary to what the docs state:
 		#http://ruby-doc.org/stdlib/libdoc/gdbm/rdoc/classes/GDBM.html#M000318
@@ -448,7 +448,7 @@ class GDBM
 		elsif RUBY_VERSION <= "1.8.7"
 			warn "GDBM#select(index..) is deprecated; use GDBM#values_at"
 
-			result = values_at *args
+			result = values_at(*args)
 		else
 			result = []
 		end
