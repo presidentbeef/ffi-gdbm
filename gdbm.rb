@@ -188,7 +188,7 @@ class GDBM
 		if @file.nil? or @file.null?
 			return if mode == -1 #C code returns Qnil, but we can't
 			#if gdbm_errno == GDBM_FILE_OPEN_ERROR || gdbm_errno == GDBM_CANT_BE_READER || gdbm_errno == GDBM_CANT_BE_WRITER
-			#Need to know what the Ruby version of this would be
+			#Need to convert to ERRNO::...?
 			#rb_sys_fail(RSTRING_PTR(file));
 			#else
 			raise GDBMError, GDBM_FFI.last_error;
@@ -301,6 +301,8 @@ class GDBM
 				default
 			elsif block_given?
 				yield key
+			else
+				raise IndexError, "key not found"
 			end
 		else
 			result
