@@ -201,7 +201,7 @@ class GDBM
 
 			@file = GDBM_FFI.open filename, BLOCKSIZE, flags, mode
 		else
-			if mode > 0
+			if mode >= 0
 				@file = GDBM_FFI.open filename, BLOCKSIZE, WRCREAT | flags, mode
 			end
 
@@ -211,10 +211,11 @@ class GDBM
 
 		if @file.nil? or @file.null?
 			return if mode == -1 #C code returns Qnil, but we can't
-			if GDBM_FFI.error_number == GDBM_FFI::FILE_OPEN_ERROR and not File.exist? filename
-				raise Errno::ENOENT
-			elsif GDBM_FFI.error_number == GDBM_FFI::CANT_BE_READER || GDM_FFI.error_number == GDBM_FFI::CANT_BE_WRITER
-				raise Errno::EACCES
+			if GDBM_FFI.error_number == GDBM_FFI::FILE_OPEN_ERROR || 
+				GDBM_FFI.error_number == GDBM_FFI::CANT_BE_READER || 
+				GDBM_FFI.error_number == GDBM_FFI::CANT_BE_WRITER
+
+				raise SystemCallError.new(GDBM_FFI.last_error, FFI.errno)
 			else
 				raise GDBMError, GDBM_FFI.last_error;
 			end
