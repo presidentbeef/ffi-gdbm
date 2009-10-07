@@ -262,14 +262,16 @@ class GDBM
 	def delete_if
 		modifiable?
 		rejects = []
-		GDBM_FFI.each_pair(file) do |k,v|
-			if yield k, v
-				rejects << k
+		begin
+			GDBM_FFI.each_pair(file) do |k,v|
+				if yield k, v
+					rejects << k
+				end
 			end
-		end
-
-		rejects.each do |k|
-			GDBM_FFI.delete file, k
+		ensure
+			rejects.each do |k|
+				GDBM_FFI.delete file, k
+			end
 		end
 
 		self
@@ -527,8 +529,12 @@ if $0 == __FILE__
 	GDBM.open "hello", 0400 do |g|
 		g["hell\000"] = "wor\000ld"
 		g["goodbye"] = "cruel world"
-		g.replace({"goodbye" => "everybody", "hello" => "somebody"})
-		p g.to_hash
+		n = 0
+		g.delete_if do |k,v|
+			break if n == 1
+			n = 1
+		end	
+		p g.length
 	end
 	g = GDBM.open "hello"
 	g.close
