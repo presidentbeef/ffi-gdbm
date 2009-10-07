@@ -245,7 +245,7 @@ class GDBM
 
 	def delete(key)
 		modifiable?
-		value = self.fetch key
+		value = self[key]
 		GDBM_FFI.delete file, key
 		value
 	end
@@ -466,7 +466,7 @@ class GDBM
 		results = []
 
 		keys.each do |k|
-			results << fetch(k)
+			results << self[k]
 		end
 
 		results
