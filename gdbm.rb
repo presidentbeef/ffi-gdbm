@@ -348,7 +348,7 @@ class GDBM
 	def keys
 		keys = []
 
-		GDBM_FFI.each_value(file) do |k|
+		GDBM_FFI.each_key(file) do |k|
 			keys << k
 		end
 
