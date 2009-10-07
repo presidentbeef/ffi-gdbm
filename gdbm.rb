@@ -35,7 +35,7 @@ module GDBM_FFI
 
 	callback :fatal_func, [:string], :void
 
-      	attach_function :open, :gdbm_open, [ :string, :int, :int, :int, :fatal_func ], :pointer
+      	attach_function :gdbm_open, [ :string, :int, :int, :int, :fatal_func ], :pointer
 	attach_function :close, :gdbm_close, [ :pointer ], :void
 	attach_function :gdbm_store, [ :pointer, Datum.by_value, Datum.by_value, :int ], :int
 	attach_function :gdbm_fetch, [ :pointer, Datum.by_value ], Datum.by_value
@@ -151,6 +151,10 @@ module GDBM_FFI
 		error_string(error_number)
 	end
 
+	def self.open(filename, blocksize, flags, mode)
+		self.gdbm_open filename, blocksize, flags, mode, FATAL
+	end
+
 	def self.set_cache_size(file, size)
 		opt = MemoryPointer.new size
 		self.set_opt file, CACHE_SIZE, opt, opt.size
@@ -195,14 +199,14 @@ class GDBM
 		if flags & RUBY_GDBM_RW_BIT != 0 #Check if flags are appropriate
 			flags &= ~RUBY_GDBM_RW_BIT #Remove check to make flag match GDBM constants
 
-			@file = GDBM_FFI.open filename, BLOCKSIZE, flags, mode, GDBM_FFI::FATAL
+			@file = GDBM_FFI.open filename, BLOCKSIZE, flags, mode
 		else
 			if mode > 0
-				@file = GDBM_FFI.open filename, BLOCKSIZE, WRCREAT | flags, mode, GDBM_FFI::FATAL
+				@file = GDBM_FFI.open filename, BLOCKSIZE, WRCREAT | flags, mode
 			end
 
-			@file = GDBM_FFI.open filename, BLOCKSIZE, WRITER | flags, 0, GDBM_FFI::FATAL if @file.nil? or @file.null?
-			@file = GDBM_FFI.open filename, BLOCKSIZE, READER | flags, 0, GDBM_FFI::FATAL if @file.nil? or @file.null?
+			@file = GDBM_FFI.open filename, BLOCKSIZE, WRITER | flags, 0 if @file.nil? or @file.null?
+			@file = GDBM_FFI.open filename, BLOCKSIZE, READER | flags, 0 if @file.nil? or @file.null?
 		end
 
 		if @file.nil? or @file.null?
