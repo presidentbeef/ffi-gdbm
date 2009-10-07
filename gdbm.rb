@@ -59,6 +59,10 @@ module GDBM_FFI
 	CACHE_SIZE = 1
 	FAST_MODE = 2
 	SYNC_MODE = 3
+	CANT_BE_READER = 9
+	CANT_BE_WRITER = 10
+	FILE_OPEN_ERROR = 3
+
 	FATAL = Proc.new  { |msg| raise RuntimeError, msg }
 
 	attach_variable :error_number, :gdbm_errno, :int
@@ -203,12 +207,13 @@ class GDBM
 
 		if @file.nil? or @file.null?
 			return if mode == -1 #C code returns Qnil, but we can't
-			#if gdbm_errno == GDBM_FILE_OPEN_ERROR || gdbm_errno == GDBM_CANT_BE_READER || gdbm_errno == GDBM_CANT_BE_WRITER
-			#Need to convert to ERRNO::...?
-			#rb_sys_fail(RSTRING_PTR(file));
-			#else
-			raise GDBMError, GDBM_FFI.last_error;
-			#end
+			if GDBM_FFI.error_number == GDBM_FFI::FILE_OPEN_ERROR and not File.exist? filename
+				raise Errno::ENOENT
+			elsif GDBM_FFI.error_number == GDBM_FFI::CANT_BE_READER || GDM_FFI.error_number == GDBM_FII::CANT_BE_WRITER
+				raise Errno::EACCES
+			else
+				raise GDBMError, GDBM_FFI.last_error;
+			end
 		end
 	end
 
