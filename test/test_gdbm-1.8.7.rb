@@ -216,7 +216,6 @@ if defined? GDBM
       assert_equal('bar', @gdbm['foo'])
 
       assert_nil(@gdbm['bar'])
-      $stderr.puts "PASSED AREF"
     end
 
     def test_fetch
