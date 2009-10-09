@@ -1,14 +1,51 @@
+=begin
+JRuby access to gdbm via FFI. Faithfully mimics MRI's standard library and is 
+compatible with gdbm files produced by that version.
+
+Author: Justin Collins
+Based on the C version by: yugui
+Website: http://github.com/presidentbeef/ffi-gdbm
+Documentation: http://ruby-doc.org/stdlib/libdoc/gdbm/rdoc/classes/GDBM.html
+JRuby: http://www.jruby.org/
+gdbm: http://directory.fsf.org/project/gdbm/
+
+The MIT License
+
+Copyright (c) 2009, Justin Collins
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in
+	all copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+	THE SOFTWARE.
+=end
+
 require 'ffi'
 
 module GDBM_FFI
 	extend FFI::Library
 	ffi_lib "gdbm"
 
+	#Note that MRI does not store the null byte, so neither does this version,
+	#even though FFI automatically appends one to the String.
 	class Datum < FFI::Struct
 		layout :dptr, :pointer,	:dsize, :int
 
-		#Note that MRI does not store the null byte, so neither does this version,
-		#even though FFI automatically appends one to the string.
+		#Expects either a MemoryPointer or a String as an argument.
+		#If it is given a String, it will initialize the fields, including
+		#setting dsize.
 		def initialize(*args)
 			if args.length == 0 or (args.length == 1 and args[0].is_a? FFI::MemoryPointer)
 				super
@@ -19,15 +56,13 @@ module GDBM_FFI
 			end
 		end
 
+		#_Do not use_. Creates a new MemoryPointer from the String.
 		def dptr=(str)
 			@dptr = FFI::MemoryPointer.from_string(str)
 			self[:dptr] = @dptr
 		end
 
-		def dptr
-			@dptr.get_string(0)
-		end
-
+		#Returns the size of the stored String.
 		def size
 			self[:dsize]
 		end
@@ -35,6 +70,7 @@ module GDBM_FFI
 
 	callback :fatal_func, [:string], :void
 
+	#Attach gdbm functions
       	attach_function :gdbm_open, [ :string, :int, :int, :int, :fatal_func ], :pointer
 	attach_function :close, :gdbm_close, [ :pointer ], :void
 	attach_function :gdbm_store, [ :pointer, Datum.by_value, Datum.by_value, :int ], :int
@@ -68,6 +104,7 @@ module GDBM_FFI
 	attach_variable :error_number, :gdbm_errno, :int
 	attach_variable :VERSION, :gdbm_version, :string
 
+	#Store the given Strings in _file_. _file_ is always GDBM_FILE pointer in these functions.
 	def self.store(file, key, value)
 		key_datum = Datum.new key
 		val_datum = Datum.new value
@@ -76,6 +113,8 @@ module GDBM_FFI
 		raise GDBMError, last_error if result != 0
 	end
 
+	#Fetch a String from the _file_ matching the given _key_. Returns _nil_ if
+	#there is no such key.
 	def self.fetch(file, key)
 		key_datum = Datum.new key
 		
@@ -88,6 +127,7 @@ module GDBM_FFI
 		end
 	end
 
+	#Returns the first key in the _file_.
 	def self.first_key(file)
 		key_datum = GDBM_FFI.gdbm_firstkey file
 		if key_datum[:dptr].null?
@@ -97,6 +137,7 @@ module GDBM_FFI
 		end
 	end
 
+	#Deletes the _key_ from the _file_.
 	def self.delete(file, key)
 		return nil if not self.exists? file, key
 		key_datum = Datum.new key
@@ -104,12 +145,14 @@ module GDBM_FFI
 		raise GDBMError, last_error if result != 0
 	end
 
+	#Checks if the _file_ contains the given _key_.
 	def self.exists?(file, key)
 		key_datum = Datum.new key
 
 		gdbm_exists(file, key_datum) != 0
 	end
 
+	#Iterates over each _key_, _value_ pair in the _file_.
 	def self.each_pair(file)
 		current = self.gdbm_firstkey file
 		until current[:dptr].null?
@@ -119,6 +162,7 @@ module GDBM_FFI
 		end
 	end
 
+	#Iterates over each key in the _file_.
 	def self.each_key(file)
 		current = self.gdbm_firstkey file
 		until current[:dptr].null?
@@ -127,6 +171,7 @@ module GDBM_FFI
 		end
 	end
 
+	#Iterates over each value in the _file_.
 	def self.each_value(file)
 		current = self.gdbm_firstkey file
 		until current[:dptr].null?
@@ -136,6 +181,7 @@ module GDBM_FFI
 		end
 	end
 
+	#Deletes all keys and values from the _file_.
 	def self.clear(file)
 		until (key = self.gdbm_firstkey(file))[:dptr].null?
 			until key[:dptr].null?
@@ -147,19 +193,24 @@ module GDBM_FFI
 		end
 	end
 
+	#Returns the last error encountered from the gdbm library as a String.
 	def self.last_error
 		error_string(error_number)
 	end
 
+	#Opens a gdbm file. Returns the GDBM_FILE pointer, which should be treated
+	#as an opaque value, to be passed in to GDBM_FFI methods.
 	def self.open(filename, blocksize, flags, mode)
 		self.gdbm_open filename, blocksize, flags, mode, FATAL
 	end
 
+	#Sets the cache size.
 	def self.set_cache_size(file, size)
 		opt = MemoryPointer.new size
 		self.set_opt file, CACHE_SIZE, opt, opt.size
 	end
 
+	#Sets the sync mode.
 	def self.set_sync_mode(file, boolean)
 		if boolean
 			opt = MemoryPointer.new 1
@@ -552,6 +603,7 @@ class GDBM
 		end
 	end
 
+	#Raises a RuntimeError if the file is closed.
 	def file
 		unless @file.nil? or @file.null?
 			@file
