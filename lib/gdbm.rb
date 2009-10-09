@@ -56,6 +56,14 @@ module GDBM_FFI
 			end
 		end
 
+		def value
+			if self[:dptr].nil? or self[:dptr].null?
+				nil
+			else
+				self[:dptr].read_string(self.size)
+			end
+		end
+
 		#_Do not use_. Creates a new MemoryPointer from the String.
 		def dptr=(str)
 			@dptr = FFI::MemoryPointer.from_string(str)
@@ -120,21 +128,13 @@ module GDBM_FFI
 		
 		val_datum = gdbm_fetch file, key_datum
 
-		if val_datum[:dptr].null?
-			nil
-		else
-			val_datum[:dptr].read_string(val_datum.size)
-		end
+		val_datum.value
 	end
 
 	#Returns the first key in the _file_.
 	def self.first_key(file)
 		key_datum = GDBM_FFI.gdbm_firstkey file
-		if key_datum[:dptr].null?
-			nil
-		else
-			key_datum[:dptr].read_string(key_datum.size)
-		end
+		key_datum.value
 	end
 
 	#Deletes the _key_ from the _file_.
@@ -155,9 +155,9 @@ module GDBM_FFI
 	#Iterates over each _key_, _value_ pair in the _file_.
 	def self.each_pair(file)
 		current = self.gdbm_firstkey file
-		until current[:dptr].null?
+		until current.value.nil?
 			value = gdbm_fetch file, current
-			yield current[:dptr].read_string(current.size), value[:dptr].read_string(value.size)
+			yield current.value, value.value
 			current = self.gdbm_nextkey file, current
 		end
 	end
@@ -165,8 +165,8 @@ module GDBM_FFI
 	#Iterates over each key in the _file_.
 	def self.each_key(file)
 		current = self.gdbm_firstkey file
-		until current[:dptr].null?
-			yield current[:dptr].read_string(current.size)
+		until current.value.nil?
+			yield current.value
 			current = self.gdbm_nextkey file, current
 		end
 	end
@@ -174,17 +174,17 @@ module GDBM_FFI
 	#Iterates over each value in the _file_.
 	def self.each_value(file)
 		current = self.gdbm_firstkey file
-		until current[:dptr].null?
+		until current.value.nil?
 			value = gdbm_fetch file, current
-			yield value[:dptr].read_string(value.size)
+			yield value.value
 			current = self.gdbm_nextkey file, current
 		end
 	end
 
 	#Deletes all keys and values from the _file_.
 	def self.clear(file)
-		until (key = self.gdbm_firstkey(file))[:dptr].null?
-			until key[:dptr].null?
+		until (key = self.gdbm_firstkey(file)).value.nil?
+			until key.value.nil?
 				next_key = self.gdbm_nextkey(file, key)
 				result = self.gdbm_delete file, key
 				raise GDBMError, last_error if result != 0
