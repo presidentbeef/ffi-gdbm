@@ -12,14 +12,14 @@ You can also install it using Ruby Gems:
 
 ## Notes
 
-* Conforms to tests for 1.8.7 and 1.9.1 and follows the C library for MRI if there are contradictions with the documentation
+* Conforms to tests from MRI 1.8.7 and 1.9.1 and follows the C library for MRI if there are contradictions with the documentation
 * Should be compatible with gdbm files created with MRI
-* Does not work with JRuby 1.3, try using it JRuby 1.4 or the master from http://github.com/jruby/jruby
-* Only works with JRuby, as it relies on features from JRuby's FFI that are not available in Ruby FFI 
+* Only works with JRuby, as it relies on features from JRuby's FFI which are not available in Ruby FFI 
+* Does not work with JRuby 1.3, try using it with JRuby 1.4 or the master from http://github.com/jruby/jruby
 
 ## Status
 
-Passes all tests from 1.8.7 and 1.9.1 except those related to [this JRuby bug](http://jira.codehaus.org/browse/JRUBY-4071), which will probably not matter to too many people. Once this is resolved, the version should go to 1.0.
+Using JRuby 1.4dev, this lib passes all tests from 1.8.7 and 1.9.1 except those related to [this JRuby bug](http://jira.codehaus.org/browse/JRUBY-4071). It passes all tests with the current 1.5dev.
 
 ## Testing
 
