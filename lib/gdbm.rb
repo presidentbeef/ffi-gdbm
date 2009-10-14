@@ -79,7 +79,7 @@ module GDBM_FFI
   callback :fatal_func, [:string], :void
 
   #Attach gdbm functions
-        attach_function :gdbm_open, [ :string, :int, :int, :int, :fatal_func ], :pointer
+  attach_function :gdbm_open, [ :string, :int, :int, :int, :fatal_func ], :pointer
   attach_function :close, :gdbm_close, [ :pointer ], :void
   attach_function :gdbm_store, [ :pointer, Datum.by_value, Datum.by_value, :int ], :int
   attach_function :gdbm_fetch, [ :pointer, Datum.by_value ], Datum.by_value
