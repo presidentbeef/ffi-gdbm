@@ -502,6 +502,8 @@ class GDBM
 		#http://ruby-doc.org/stdlib/libdoc/gdbm/rdoc/classes/GDBM.html#M000318
 		#Instead, it yields a pair and returns [[k1, v1], [k2, v2], ...]
 		#But this is how it is in 1.8.7 and 1.9.1, so...
+		#
+		#Update: Docs have been patched: http://redmine.ruby-lang.org/repositories/revision/1?rev=25300
 
 		if block_given?
 			if args.length > 0

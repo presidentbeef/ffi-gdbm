@@ -19,7 +19,7 @@ You can also install it using Ruby Gems:
 
 ## Status
 
-Using JRuby 1.4dev, this lib passes all tests from 1.8.7 and 1.9.1 except those related to [this JRuby bug](http://jira.codehaus.org/browse/JRUBY-4071). It passes all tests with the current 1.5dev.
+Passing all tests with JRuby >= 1.4.
 
 ## Testing
 
