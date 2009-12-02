@@ -19,6 +19,9 @@ class File::Stat
 end
 
 if defined? GDBM
+
+  $stderr.puts "WARNING: Loaded non-FFI gdbm library (probably from the standard lib)." unless defined? GDBM_FFI
+
   require 'tmpdir'
   require 'fileutils'
 
@@ -724,4 +727,6 @@ if defined? GDBM
       }
     end
   end
+else
+  $stderr.puts "WARNING: Did not load gdbm library."
 end
