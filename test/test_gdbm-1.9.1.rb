@@ -7,10 +7,14 @@ rescue LoadError
 end
 
 #This is needed because JRuby does not have it implemented yet,
-#but it's in MRI 1.9 and in the tests below (remove_entry_secure)
+#but it's in MRI 1.9 and in the tests below (remove_entry_secure).
+#
+#This is NOT NECESSARILY 1.9's implementation of it, though.
 class File::Stat
-	def world_writable?
-		(self.mode & 0002) != 0
+	unless self.instance_methods.include? :world_writable?
+		def world_writable?
+			(self.mode & 0002) != 0
+		end
 	end
 end
 
