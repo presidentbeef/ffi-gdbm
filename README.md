@@ -8,22 +8,33 @@ You can download and use `gdbm.rb` anyhow you would like.
 
 You can also install it using Ruby Gems:
 
+`gem install gdbm --source http://gemcutter.org`
+
+or, if using JRuby:
+
 `jgem install gdbm --source http://gemcutter.org`
 
 ## Notes
 
 * Conforms to tests from MRI 1.8.7 and 1.9.1 and follows the C library for MRI if there are contradictions with the documentation
-* Should be compatible with gdbm files created with MRI
-* Only works with JRuby, as it relies on features from JRuby's FFI which are not available in Ruby FFI 
-* Does not work with JRuby 1.3, try using it with JRuby 1.4 or the master from http://github.com/jruby/jruby
+* Should be compatible with gdbm files created with MRI's standard library
+* Certainly works with JRuby, may work with other alternative Ruby implementations
 
 ## Status
 
-Passing all tests with JRuby >= 1.4.
+Passing all tests with JRuby 1.4, on 32-bit Linux with Sun's Java and OpenJDK. There may be issues using 64-bit.
+
+Passing all tests with MRI Ruby 1.8.7 and 1.9.2RC1 with Ruby-FFI 0.5.4 on 32- and 64-bit Linux.
+
+Does not currently work with Rubinius' FFI. Please let me know if this changes.
+
+Something weird happens with temp files (used in tests) with JRuby on Ubuntu. For some reason, it gets permission denied when trying to delete them. Any thoughts on that would be helpful.
+
+Further testing on other systems is welcome!
 
 ## Testing
 
-Two sets of tests are included, copied straight from the MRI distribution. However, they do require the use of ObjectSpace, so this is how to run them:
+Two sets of tests are included, copied straight from the MRI distribution. However, they do require the use of ObjectSpace, so this is how to run them with JRuby:
 
 `jruby -X+O -r lib/gdbm test/test_gdbm-1.8.7.rb`
 
