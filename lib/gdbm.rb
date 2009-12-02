@@ -189,16 +189,16 @@ module GDBM_FFI
 
   #Sets the cache size.
   def self.set_cache_size(file, size)
-    opt = MemoryPointer.new size
+    opt = FFI::MemoryPointer.new size
     self.set_opt file, CACHE_SIZE, opt, opt.size
   end
 
   #Sets the sync mode.
   def self.set_sync_mode(file, boolean)
     if boolean
-      opt = MemoryPointer.new 1
+      opt = FFI::MemoryPointer.new 1
     else
-      opt = MemoryPointer.new 0
+      opt = FFI::MemoryPointer.new 0
     end
 
     self.set_opt file, SYNC_MODE, opt, opt.size
