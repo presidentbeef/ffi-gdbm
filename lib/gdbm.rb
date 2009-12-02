@@ -15,7 +15,9 @@ This library is released under the same tri-license (GPL/LGPL/CPL) as JRuby.
 Please see the COPYING file distributed with JRuby for details.
 =end
 
-require 'ffi'
+unless defined? FFI
+  require 'ffi'
+end
 
 module GDBM_FFI
   extend FFI::Library
