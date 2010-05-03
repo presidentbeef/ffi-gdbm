@@ -22,9 +22,9 @@ or, if using JRuby:
 
 ## Status
 
-Passing all tests with JRuby 1.4, on 32-bit Linux with Sun's Java and OpenJDK. There may be issues using 64-bit.
+Passing all tests with JRuby 1.4 and 1.5rc2 on 32-bit Linux. There may (or may not) be issues using 64-bit.
 
-Passing all tests with MRI Ruby 1.8.7 and 1.9.2RC1 with Ruby-FFI 0.5.4 on 32- and 64-bit Linux.
+Passing all tests with MRI Ruby 1.8.7 and 1.9.1 with Ruby-FFI 0.5.4 (and 0.6.3) on 32-bit Linux.
 
 Does not currently work with Rubinius' FFI. Please let me know if this changes.
 
