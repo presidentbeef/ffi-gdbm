@@ -32,12 +32,12 @@ module GDBM_FFI
     #If it is given a String, it will initialize the fields, including
     #setting dsize.
     def initialize(*args)
-      if args.length == 0 or (args.length == 1 and args[0].is_a? FFI::MemoryPointer)
-        super
-      elsif args.length == 1 and args[0].is_a? String
+      if args.length == 1 and args[0].is_a? String
         super()
         self.dptr = args[0]
         self[:dsize] = args[0].length
+      else
+        super
       end
     end
 
