@@ -22,7 +22,7 @@ or, if using JRuby:
 
 ## Status
 
-Passing all tests with JRuby 1.4 and 1.5rc2 on 32-bit Linux. There may (or may not) be issues using 64-bit.
+Passing all tests with JRuby 1.4 and 1.5.3 on 32-bit Linux. There may (or may not) be issues using 64-bit.
 
 Passing all tests with MRI Ruby 1.8.7 and 1.9.1 with Ruby-FFI 0.5.4 (and 0.6.3) on 32-bit Linux.
 
