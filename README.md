@@ -1,6 +1,8 @@
 ## ffi-gdbm
 
-An attempt to make gdbm available beyond the C Ruby implementation.
+An attempt to make [gdbm](http://www.vivtek.com/gdbm/) available beyond the C Ruby implementation.
+
+Faithfully mimics MRI's standard library and is compatible with gdbm files produced by that version.
 
 ## Installing
 
@@ -8,11 +10,11 @@ You can download and use `gdbm.rb` anyhow you would like.
 
 You can also install it using Ruby Gems:
 
-`gem install gdbm --source http://gemcutter.org`
+`gem install gdbm`
 
 or, if using JRuby:
 
-`jgem install gdbm --source http://gemcutter.org`
+`jgem install gdbm`
 
 ## Notes
 
@@ -22,11 +24,11 @@ or, if using JRuby:
 
 ## Status
 
-Passing all tests with JRuby 1.4 and 1.5.3 on 32-bit Linux. There may (or may not) be issues using 64-bit.
+Passing all tests with JRuby 1.4, 1.5.3, 1.6 on 32-bit Linux. There may (or may not) be issues using 64-bit.
 
-Passing all tests with MRI Ruby 1.8.7 and 1.9.1 with Ruby-FFI 0.5.4 (and 0.6.3) on 32-bit Linux.
+Passing all tests with MRI Ruby 1.8.7, 1.9.1, 1.9.2 with Ruby-FFI 0.5.4, 0.6.3, 1.0.7 on 32-bit Linux.
 
-Does not currently work with Rubinius' FFI. Please let me know if this changes.
+Does not currently work with Rubinius' FFI, which seems to be wildly different from the FFI gem. Please let me know if this changes.
 
 Something weird happens with temp files (used in tests) with JRuby on Ubuntu. For some reason, it gets permission denied when trying to delete them. Any thoughts on that would be helpful.
 
