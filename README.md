@@ -39,3 +39,10 @@ Two sets of tests are included, copied straight from the MRI distribution. Howev
 `jruby -X+O -r lib/gdbm test/test_gdbm-1.8.7.rb`
 
 `jruby --1.9 -X+O -r lib/gdbm test/test_gdbm-1.9.1.rb`
+
+## License
+
+Copyright (c) 2009, Justin Collins
+
+This library is released under the same tri-license (GPL/LGPL/CPL) as JRuby.
+Please see the COPYING file distributed with JRuby for details.
