@@ -149,11 +149,17 @@ module GDBM_FFI
 
   #Iterates over each key in the _file_.
   def self.each_key(file)
+    keys = []
     current = self.gdbm_firstkey file
     until current.value.nil?
-      yield current.value
+      if block_given?
+        yield current.value
+      else
+        keys << current.value
+      end
       current = self.gdbm_nextkey file, current
     end
+    block_given? ? nil : keys.each
   end
 
   #Iterates over each value in the _file_.
@@ -345,8 +351,8 @@ class GDBM
   alias :reject! :delete_if
 
   def each_key(&block)
-    GDBM_FFI.each_key file, &block
-    self
+    enumerator = GDBM_FFI.each_key(file, &block)
+    enumerator || self
   end
 
   def each_pair(&block)
