@@ -35,7 +35,7 @@ module GDBM_FFI
       if args.length == 1 and args[0].is_a? String
         super()
         self.dptr = args[0]
-        self[:dsize] = args[0].length
+        self[:dsize] = args[0].bytesize
       else
         super
       end
