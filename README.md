@@ -30,8 +30,7 @@ JRuby does not require further installation, but Rubinius will need the FFI gem:
 
 Tests passing on 64 bit Linux with
 
-* JRuby 1.7.17
-* Rubinius 2.2.10 + FFI 1.9.6
+* JRuby 1.7.21 and 9.0.5.0
 
 ### Older Tests
 
@@ -47,9 +46,9 @@ Further testing on other systems is welcome!
 
 Two sets of tests are included, copied straight from the MRI distribution. However, they do require the use of ObjectSpace, so this is how to run them with JRuby:
 
-`jruby --1.8 -X+O -r lib/gdbm test/test_gdbm-1.8.7.rb`
+`jruby --1.8 -X+O -r lib/gdbm test/test_gdbm-1.8.7.rb` (Note: only works with JRuby prior to 9.0.0.0)
 
-`jruby -X+O -r lib/gdbm test/test_gdbm-1.9.1.rb`
+`jruby -X+O -r ./lib/gdbm test/test_gdbm-1.9.1.rb`
 
 ## License
 
