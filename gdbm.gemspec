@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
 	s.name = %q{gdbm}
-	s.version = "1.3.0"
+	s.version = "1.3.1"
 	s.authors = ["Justin Collins"]
 	s.summary = %q{Provides access to gdbm through Ruby-FFI, particularly for JRuby and other alternative Ruby implementations.}
 	s.homepage = %q{http://github.com/presidentbeef/ffi-gdbm}
