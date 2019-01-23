@@ -94,7 +94,16 @@ module GDBM_FFI
 
   FATAL = Proc.new  { |msg| raise RuntimeError, msg }
 
-  attach_variable :error_number, :gdbm_errno, :int
+  begin
+    attach_variable :error_number, :gdbm_errno, :int
+  rescue FFI::NotFoundError
+    attach_function :gdbm_errno_location, [], :pointer
+
+    def self.error_number
+      self.gdbm_errno_location.read_int
+    end
+  end
+
   attach_variable :VERSION, :gdbm_version, :string
 
   #Store the given Strings in _file_. _file_ is always GDBM_FILE pointer in these functions.
