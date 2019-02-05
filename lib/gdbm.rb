@@ -599,7 +599,9 @@ class GDBM
   def modifiable?
     #raise SecurityError, "Insecure operation at level #$SAFE" if $SAFE >= 4 #Not currently supported in JRuby
     if self.frozen?
-      if RUBY_VERSION > "1.8.7"
+      if defined? FrozenError
+        raise FrozenError, "Can't modify frozen #{self}"
+      elsif RUBY_VERSION > "1.8.7"
         raise RuntimeError, "Can't modify frozen #{self}"
       else
         raise TypeError, "Can't modify frozen #{self}"
