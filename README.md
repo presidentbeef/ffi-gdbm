@@ -14,15 +14,15 @@ You can also install it using Ruby Gems:
 
 or, if using JRuby:
 
-`jgem install gdbm`
+`jgem install ffi-gdbm`
 
-JRuby does not require further installation, but Rubinius will need the FFI gem:
+JRuby does not require further installation, but other implementations may need the FFI gem:
 
 `gem install ffi`
 
 ## Notes
 
-* Conforms to tests from MRI 1.8.7 and 1.9.1 and follows the C library for MRI if there are contradictions with the documentation
+* Conforms to tests from MRI 1.8.7, 1.9.1, 2.6.1 and follows the C library for MRI if there are contradictions with the documentation
 * Should be compatible with gdbm files created with MRI's standard library
 * Certainly works with JRuby, may work with other alternative Ruby implementations
 
@@ -31,6 +31,10 @@ JRuby does not require further installation, but Rubinius will need the FFI gem:
 Tests passing on 64 bit Linux with
 
 * JRuby 1.7.21 and 9.1.7.0
+
+Tests passing on OSX (High Sierra) with
+
+* JRuby 9.2.5.0
 
 ### Older Tests
 
@@ -42,11 +46,13 @@ Further testing on other systems is welcome!
 
 ## Testing
 
-Two sets of tests are included, copied straight from the MRI distribution. However, they do require the use of ObjectSpace, so this is how to run them with JRuby:
+Three sets of tests are included, copied straight from the MRI distribution. However, they do require the use of ObjectSpace, so this is how to run them with JRuby:
 
 `jruby --1.8 -X+O -r lib/gdbm test/test_gdbm-1.8.7.rb` (Note: these tests only work with JRuby prior to 9.0.0.0)
 
 `jruby -X+O -r ./lib/gdbm test/test_gdbm-1.9.1.rb`
+
+`jruby -X+O -r ./lib/gdbm test/test_gdbm-2.6.rb`
 
 ## License
 
