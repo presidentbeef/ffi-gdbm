@@ -1,41 +1,21 @@
-require 'test/unit'
-require 'tmpdir'
-
+# frozen_string_literal: false
 begin
   require 'gdbm'
 rescue LoadError
 end
 
-#This is needed because JRuby does not have it implemented yet,
-#but it's in MRI 1.9 and in the tests below (remove_entry_secure).
-#
-#This is NOT NECESSARILY 1.9's implementation of it, though.
-class File::Stat
-	unless self.instance_methods.include? :world_writable?
-		def world_writable?
-			(self.mode & 0002) != 0
-		end
-	end
-end
-
 if defined? GDBM
-
-  $stderr.puts "WARNING: Loaded non-FFI gdbm library (probably from the standard lib)." unless defined? GDBM_FFI
-
+  require 'test/unit'
   require 'tmpdir'
   require 'fileutils'
 
-  class TestGDBM < Test::Unit::TestCase
-    def TestGDBM.uname_s
+  class TestGDBM_RDONLY < Test::Unit::TestCase
+    def TestGDBM_RDONLY.uname_s
       require 'rbconfig'
       case RbConfig::CONFIG['target_os']
       when 'cygwin'
-        require 'Win32API'
-        uname = Win32API.new('cygwin1', 'uname', 'P', 'I')
-        utsname = ' ' * 100
-        raise 'cannot get system name' if uname.call(utsname) == -1
-
-        utsname.unpack('A20' * 5)[0]
+        require 'etc'
+	Etc.uname[:sysname]
       else
         RbConfig::CONFIG['target_os']
       end
@@ -46,7 +26,6 @@ if defined? GDBM
       @tmpdir = Dir.mktmpdir("tmptest_gdbm")
       @prefix = "tmptest_gdbm_#{$$}"
       @path = "#{@tmpdir}/#{@prefix}_"
-      assert_instance_of(GDBM, @gdbm = GDBM.new(@path))
 
       # prepare to make readonly GDBM file
       GDBM.open("#{@tmpdir}/#{@prefix}_rdonly", 0400) {|gdbm|
@@ -55,10 +34,47 @@ if defined? GDBM
       assert_instance_of(GDBM, @gdbm_rdonly = GDBM.new("#{@tmpdir}/#{@prefix}_rdonly", nil))
     end
     def teardown
-      assert_nil(@gdbm.close)
       assert_nil(@gdbm_rdonly.close)
       ObjectSpace.each_object(GDBM) do |obj|
         obj.close unless obj.closed?
+      end
+      FileUtils.remove_entry_secure @tmpdir
+    end
+
+    def test_delete_rdonly
+      skip("skipped because root can open anything") if Process.uid == 0
+
+      if /^CYGWIN_9/ !~ SYSTEM
+        assert_raise(GDBMError) {
+          @gdbm_rdonly.delete("foo")
+        }
+
+        assert_nil(@gdbm_rdonly.delete("bar"))
+      end
+    end
+  end
+
+  class TestGDBM < Test::Unit::TestCase
+    SYSTEM = TestGDBM_RDONLY::SYSTEM
+
+    def setup
+      @tmpdir = Dir.mktmpdir("tmptest_gdbm")
+      @prefix = "tmptest_gdbm_#{$$}"
+      @path = "#{@tmpdir}/#{@prefix}_"
+      assert_instance_of(GDBM, @gdbm = GDBM.new(@path))
+    end
+
+    def teardown
+      assert_nil(@gdbm.close)
+      ObjectSpace.each_object(GDBM) do |obj|
+        obj.close unless obj.closed?
+      end
+      begin
+        FileUtils.remove_entry_secure @tmpdir
+      rescue
+        system("fuser", *Dir.entries(@tmpdir).grep(/\A(?!\.\.?\z)/), chdir: @tmpdir)
+      else
+        return
       end
       FileUtils.remove_entry_secure @tmpdir
     end
@@ -72,15 +88,6 @@ if defined? GDBM
         assert_equal(true, gdbm.empty?)
       else
         assert_equal(false, gdbm.empty?)
-      end
-    end
-
-    def have_fork?
-      begin
-        fork{}
-        true
-      rescue NotImplementedError
-        false
       end
     end
 
@@ -98,7 +105,7 @@ if defined? GDBM
       begin
         assert_instance_of(GDBM, gdbm = GDBM.open("#{@tmpdir}/#{@prefix}"))
         gdbm.close
-        assert_equal(File.stat("#{@tmpdir}/#{@prefix}").mode & 0777, 0666)
+        assert_equal(File.stat("#{@tmpdir}/#{@prefix}").mode & 0777, 0666) unless /mswin|mingw/ =~ RUBY_PLATFORM
         assert_instance_of(GDBM, gdbm = GDBM.open("#{@tmpdir}/#{@prefix}2", 0644))
         gdbm.close
         assert_equal(File.stat("#{@tmpdir}/#{@prefix}2").mode & 0777, 0644)
@@ -107,8 +114,8 @@ if defined? GDBM
       end
     end
     def test_s_open_no_create
-      assert_nil(gdbm = GDBM.open("#{@tmpdir}/#{@prefix}", nil),
-                 "this test is failed on libgdbm 1.8.0")
+      skip "gdbm_open(GDBM_WRITER) is broken on libgdbm 1.8.0" if /1\.8\.0/ =~ GDBM::VERSION
+      assert_nil(gdbm = GDBM.open("#{@tmpdir}/#{@prefix}", nil))
     ensure
       gdbm.close if gdbm
     end
@@ -133,23 +140,33 @@ if defined? GDBM
     def test_s_open_with_block
       assert_equal(GDBM.open("#{@tmpdir}/#{@prefix}") { :foo }, :foo)
     end
+
+    def open_db_child(dbname, *opts)
+      opts = [0644, *opts].map(&:inspect).join(', ')
+      args = ["jruby", "-r./lib/gdbm", "-e", <<-SRC, dbname]
+      STDOUT.sync = true
+      gdbm = GDBM.open(ARGV.shift, #{opts})
+      puts gdbm.class
+      gets
+      SRC
+      IO.popen(args, "r+") do |f|
+        dbclass = f.gets
+        assert_equal("GDBM", dbclass.chomp)
+        yield
+      end
+    end
+
     def test_s_open_lock
-      return unless have_fork?	# snip this test
-      pid = fork() {
-        assert_instance_of(GDBM, gdbm  = GDBM.open("#{@tmpdir}/#{@prefix}", 0644))
-        sleep 2
-      }
-      begin
-        sleep 1
-        assert_raise(Errno::EWOULDBLOCK) {
-          begin
-            assert_instance_of(GDBM, gdbm2 = GDBM.open("#{@tmpdir}/#{@prefix}", 0644))
-          rescue Errno::EAGAIN, Errno::EACCES
-            raise Errno::EWOULDBLOCK
-          end
+      skip "GDBM.open would block when opening already locked gdbm file on platforms without flock and with lockf" if /solaris|aix/ =~ RUBY_PLATFORM
+
+      dbname = "#{@tmpdir}/#{@prefix}"
+
+      open_db_child(dbname) do
+        assert_raise(Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::EACCES) {
+          GDBM.open(dbname, 0644) {|gdbm|
+            assert(false)
+          }
         }
-      ensure
-        Process.wait pid
       end
     end
 
@@ -169,51 +186,37 @@ if defined? GDBM
 =end
 
     def test_s_open_nolock
-      # gdbm 1.8.0 specific
-      if not defined? GDBM::NOLOCK
-        return
-      end
-      return unless have_fork?	# snip this test
+      dbname = "#{@tmpdir}/#{@prefix}"
 
-      pid = fork() {
-        assert_instance_of(GDBM, gdbm  = GDBM.open("#{@tmpdir}/#{@prefix}", 0644,
-                                                  GDBM::NOLOCK))
-        sleep 2
-      }
-      sleep 1
-      begin
-        gdbm2 = nil
+      open_db_child(dbname, GDBM::NOLOCK) do
         assert_nothing_raised(Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::EACCES) {
-          assert_instance_of(GDBM, gdbm2 = GDBM.open("#{@tmpdir}/#{@prefix}", 0644))
+          GDBM.open(dbname, 0644) {|gdbm2|
+            assert_instance_of(GDBM, gdbm2)
+          }
         }
-      ensure
-        Process.wait pid
-        gdbm2.close if gdbm2
       end
 
-      p Dir.glob("#{@tmpdir}/#{@prefix}*") if $DEBUG
+      STDERR.puts Dir.glob("#{dbname}*") if $DEBUG
 
-      pid = fork() {
-        assert_instance_of(GDBM, gdbm  = GDBM.open("#{@tmpdir}/#{@prefix}", 0644))
-        sleep 2
-      }
-      begin
-        sleep 1
-        gdbm2 = nil
+      # The following test fails on Windows because flock() implementation
+      # is different from Unix.
+      return if /mswin|mingw/ =~ RUBY_PLATFORM
+
+      open_db_child(dbname) do
         assert_nothing_raised(Errno::EWOULDBLOCK, Errno::EAGAIN, Errno::EACCES) {
           # this test is failed on Cygwin98 (???)
-          assert_instance_of(GDBM, gdbm2 = GDBM.open("#{@tmpdir}/#{@prefix}", 0644,
-                                                     GDBM::NOLOCK))
+          GDBM.open(dbname, 0644, GDBM::NOLOCK) {|gdbm2|
+            assert_instance_of(GDBM, gdbm2)
+          }
         }
-      ensure
-        Process.wait pid
-        gdbm2.close if gdbm2
       end
-    end
+    end if defined? GDBM::NOLOCK # gdbm 1.8.0 specific
 
     def test_s_open_error
+      skip "because root can open anything" if Process.uid == 0
+
       assert_instance_of(GDBM, gdbm = GDBM.open("#{@tmpdir}/#{@prefix}", 0))
-      assert_raise(Errno::EACCES) {
+      assert_raise(Errno::EACCES, Errno::EWOULDBLOCK) {
         GDBM.open("#{@tmpdir}/#{@prefix}", 0)
       }
       gdbm.close
@@ -275,7 +278,7 @@ if defined? GDBM
         num += 1 if i == 0
         assert_equal(num, @gdbm.size)
 
-        # Fixnum
+        # Integer
         assert_equal('200', @gdbm['100'] = '200')
         assert_equal('200', @gdbm['100'])
 
@@ -401,7 +404,7 @@ if defined? GDBM
     end
 
     def test_each_key_without_block
-      assert_kind_of ::Enumerator, @gdbm.each_key
+      assert_kind_of Enumerator, @gdbm.each_key
     end
 
     def test_keys
@@ -457,15 +460,8 @@ if defined? GDBM
       assert_equal(2, @gdbm.size)
 
       assert_nil(@gdbm.delete(key))
-
-      if /^CYGWIN_9/ !~ SYSTEM
-        assert_raise(GDBMError) {
-          @gdbm_rdonly.delete("foo")
-        }
-
-        assert_nil(@gdbm_rdonly.delete("bar"))
-      end
     end
+
     def test_delete_with_block
       key = 'no called block'
       @gdbm[key] = 'foo'
@@ -518,7 +514,7 @@ if defined? GDBM
           n+=1
           true
         }
-      rescue
+      rescue RuntimeError
       end
       assert_equal(51, n)
       check_size(49, @gdbm)
@@ -603,6 +599,7 @@ if defined? GDBM
 
       size2 = File.size(@path)
       @gdbm.reorganize
+      @gdbm.sync
       size3 = File.size(@path)
 
       # p [size1, size2, size3]
@@ -686,6 +683,8 @@ if defined? GDBM
     end
 
     def test_writer_open_notexist
+      skip "gdbm_open(GDBM_WRITER) is broken on libgdbm 1.8.0" if /1\.8\.0/ =~ GDBM::VERSION
+
       assert_raise(Errno::ENOENT) {
         GDBM.open("#{@tmproot}/a", 0666, GDBM::WRITER)
       }
@@ -715,7 +714,7 @@ if defined? GDBM
     def test_newdb_open
       GDBM.open("#{@tmproot}/a.dbm") {|dbm|
         dbm["k"] = "v"
-      } 
+      }
       v = GDBM.open("#{@tmproot}/a.dbm", nil, GDBM::NEWDB) {|d|
         assert_equal(0, d.length)
         assert_nil(d["k"])
@@ -732,6 +731,4 @@ if defined? GDBM
       }
     end
   end
-else
-  $stderr.puts "WARNING: Did not load gdbm library."
 end

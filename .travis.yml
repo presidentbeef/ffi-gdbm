@@ -1,0 +1,6 @@
+language: ruby
+rvm:
+  - jruby
+script:
+  - "jruby -X+O -r ./lib/gdbm test/test_gdbm-1.9.1.rb"
+  - "jruby -X+O -r ./lib/gdbm test/test_gdbm-2.6.rb"
