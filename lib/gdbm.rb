@@ -246,6 +246,7 @@ class GDBM
     mode = -1 if mode.nil?
     flags = 0 if flags.nil?
     @file = nil
+    @closed = [false] # This is a dumb flag to get around tracking closed, frozen DBs
 
     if flags & RUBY_GDBM_RW_BIT != 0 #Check if flags are appropriate
       flags &= ~RUBY_GDBM_RW_BIT #Remove check to make flag match GDBM constants
@@ -316,12 +317,13 @@ class GDBM
       raise RuntimeError, "closed GDBM file"
     else
       GDBM_FFI.close @file
+      @closed[0] = true
       @file = nil unless frozen?
     end
   end
 
   def closed?
-    @file.nil? or @file.null?
+    @file.nil? or @file.null? or @closed[0]
   end
 
   def delete(key)
